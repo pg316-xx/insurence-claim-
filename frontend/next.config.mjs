@@ -1,14 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    output: 'export', // ENABLES STATIC SITE GENERATION
+    // REMOVED static export to support dynamic claim pages on Web Service
     eslint: {
         ignoreDuringBuilds: true,
     },
     typescript: {
         ignoreBuildErrors: true,
-    },
-    images: {
-        unoptimized: true, // Required for static export
     }
 };
 
