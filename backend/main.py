@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import claims, users, payments, auth
+from api import claims, users, payments # Correct utilities
 
 app = FastAPI(title="Insurance Claim Management API")
 
@@ -8,7 +8,8 @@ app = FastAPI(title="Insurance Claim Management API")
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://insure-3uut.onrender.com" # YOUR OFFICIAL FRONTEND
+    "https://insure-3uut.onrender.com",
+    "https://insure-3uut.onrender.app"
 ]
 
 app.add_middleware(
@@ -19,8 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register Routers
-app.include_router(auth.router)
+# Register Main Routers
 app.include_router(claims.router)
 app.include_router(users.router)
 app.include_router(payments.router)
