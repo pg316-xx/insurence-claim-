@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // Use 127.0.0.1 to avoid common Windows localhost resolution issues
-  baseURL: 'http://127.0.0.1:8000'
+  // Dynamically switch between Production Render and Local Development
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
 });
 
 api.interceptors.request.use((config) => {
