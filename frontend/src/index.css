@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
+
+@import "tailwindcss";
+
+:root {
+  --primary: #C5A028; /* Elegant Gold */
+  --primary-light: #E5C76B;
+  --primary-dark: #9A7B1F;
+  --secondary: #1A1A1A; /* Deep Charcoal */
+  --accent: #FDFBF7; /* Creamy White */
+  --background: #FFFFFF;
+  --foreground: #1A1A1A;
+  --gold-gradient: linear-gradient(135deg, #C5A028 0%, #E5C76B 50%, #9A7B1F 100%);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Outfit', sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+@layer components {
+  .btn-gold {
+    @apply relative overflow-hidden bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white font-semibold py-2.5 px-6 rounded-full transition-all duration-300 shadow-[0_4px_15px_rgba(197,160,40,0.3)] hover:shadow-[0_8px_25px_rgba(197,160,40,0.5)] active:scale-95;
+  }
+  
+  .card-premium {
+    @apply bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.04)] p-8 border border-slate-100 hover:border-[var(--primary-light)] transition-all duration-500;
+  }
+
+  .gold-text {
+    @apply bg-clip-text text-transparent bg-[var(--gold-gradient)] font-bold;
+  }
+
+  .input-premium {
+    @apply w-full px-5 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all bg-slate-50/50;
+  }
+
+  .glass-gold {
+    @apply bg-white/80 backdrop-blur-md border border-[var(--primary-light)] shadow-xl;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary-light);
+  border-radius: 10px;
+}

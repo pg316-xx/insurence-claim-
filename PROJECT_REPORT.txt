@@ -1,0 +1,283 @@
+================================================================================
+       INSURANCE CLAIM MANAGEMENT SYSTEM — COMPLETE PROJECT REPORT
+================================================================================
+  Author    : Pawan G
+  Date      : 18 April 2026
+  Version   : 1.0 (Production)
+================================================================================
+
+
+1. PROJECT OVERVIEW
+────────────────────────────────────────────────────────────────────────────────
+  A full-stack, cloud-deployed Insurance Claim Management System that allows
+  clients to file insurance claims with supporting documents, and enables
+  administrators to review, approve, reject, and disburse settlements
+  directly to client UPI accounts. The system features role-based access
+  control, real-time claim tracking, and a secure financial disbursal engine.
+
+
+2. TECH STACK
+────────────────────────────────────────────────────────────────────────────────
+
+  LAYER              TECHNOLOGY               VERSION / DETAILS
+  ─────────────────  ───────────────────────  ──────────────────────────────
+  Frontend           Next.js                  14.2.3
+  UI Framework       React                    18.2.0
+  Animations         Framer Motion            11.x
+  Icons              Lucide React             0.400.x
+  HTTP Client        Axios                    1.6.x
+  Backend            FastAPI (Python)         Latest
+  ASGI Server        Uvicorn                  Latest (with standard extras)
+  Prod Server        Gunicorn                 Latest
+  Database           Supabase (PostgreSQL)    Cloud-hosted
+  Authentication     Supabase Auth            JWT / Bearer Token
+  Payment Gateway    Razorpay API             Test Mode (rzp_test_*)
+  Hosting (Frontend) Render.com               Web Service
+  Hosting (Backend)  Render.com               Web Service
+  Version Control    Git / GitHub             github.com/pg316-xx/insurence-claim-
+
+
+3. SYSTEM ARCHITECTURE
+────────────────────────────────────────────────────────────────────────────────
+
+  ┌──────────────────────┐       HTTPS        ┌──────────────────────┐
+  │                      │  ◄──────────────►  │                      │
+  │   FRONTEND (Next.js) │                    │   BACKEND (FastAPI)  │
+  │   Render Web Service │                    │   Render Web Service │
+  │                      │                    │                      │
+  │   - Admin Dashboard  │                    │   - REST API         │
+  │   - Client Portal    │                    │   - JWT Auth         │
+  │   - Login / Register │                    │   - CORS Middleware  │
+  │                      │                    │                      │
+  └──────────────────────┘                    └──────────┬───────────┘
+                                                         │
+                                                         │ Supabase SDK
+                                                         │
+                                              ┌──────────▼───────────┐
+                                              │                      │
+                                              │   SUPABASE (Cloud)   │
+                                              │                      │
+                                              │   - PostgreSQL DB    │
+                                              │   - Auth Service     │
+                                              │   - Storage (Docs)   │
+                                              │                      │
+                                              └──────────────────────┘
+
+
+4. DATABASE SCHEMA
+────────────────────────────────────────────────────────────────────────────────
+
+  TABLE: users
+  ┌─────────────┬──────────┬───────────────────────────────────────────┐
+  │ COLUMN      │ TYPE     │ NOTES                                     │
+  ├─────────────┼──────────┼───────────────────────────────────────────┤
+  │ id          │ UUID     │ Primary Key (from Supabase Auth)          │
+  │ name        │ TEXT     │ Full name of the user                     │
+  │ email       │ TEXT     │ Unique email address                      │
+  │ password    │ TEXT     │ "SU_AUTH_MANAGED" (managed by Supabase)   │
+  │ role        │ TEXT     │ "admin" or "customer"                     │
+  │ upi_id      │ TEXT     │ UPI ID for payout (e.g. name@upi)        │
+  │ created_at  │ TIMESTMP │ Auto-generated                            │
+  └─────────────┴──────────┴───────────────────────────────────────────┘
+
+  TABLE: claims
+  ┌─────────────┬──────────┬───────────────────────────────────────────┐
+  │ COLUMN      │ TYPE     │ NOTES                                     │
+  ├─────────────┼──────────┼───────────────────────────────────────────┤
+  │ id          │ UUID     │ Primary Key                               │
+  │ user_id     │ UUID     │ Foreign Key → users.id                    │
+  │ type        │ TEXT     │ Insurance type (Health, Vehicle, etc.)    │
+  │ description │ TEXT     │ Claim description / reason                │
+  │ amount      │ DECIMAL  │ Claim amount in INR (₹)                  │
+  │ status      │ TEXT     │ pending / approved / rejected / paid      │
+  │ created_at  │ TIMESTMP │ Submission timestamp                      │
+  │ deadline    │ TIMESTMP │ Review deadline                           │
+  │ approved_at │ TIMESTMP │ When admin approved the claim             │
+  │ payment_id  │ TEXT     │ Settlement transaction reference ID       │
+  └─────────────┴──────────┴───────────────────────────────────────────┘
+
+  TABLE: documents
+  ┌─────────────┬──────────┬───────────────────────────────────────────┐
+  │ COLUMN      │ TYPE     │ NOTES                                     │
+  ├─────────────┼──────────┼───────────────────────────────────────────┤
+  │ id          │ UUID     │ Primary Key                               │
+  │ claim_id    │ UUID     │ Foreign Key → claims.id                   │
+  │ type        │ TEXT     │ Document type (ID Proof, Medical, etc.)   │
+  │ file_url    │ TEXT     │ Supabase Storage URL                      │
+  │ uploaded_at │ TIMESTMP │ Upload timestamp                          │
+  └─────────────┴──────────┴───────────────────────────────────────────┘
+
+  CONSTRAINT: claims_status_check
+    CHECK (status IN ('pending', 'under_review', 'approved', 'rejected', 'paid'))
+
+
+5. API ENDPOINTS
+────────────────────────────────────────────────────────────────────────────────
+
+  BASE URL (Production): https://<your-backend>.onrender.com
+  BASE URL (Local Dev):   http://127.0.0.1:8000
+
+  5.1 AUTHENTICATION & USERS  (Prefix: /users)
+  ─────────────────────────────────────────────
+  METHOD  ENDPOINT             AUTH    DESCRIPTION
+  POST    /users/register      No      Register a new user account
+  POST    /users/login         No      Login and receive JWT token
+  GET     /users/me            Yes     Get current user's profile
+  PATCH   /users/me/upi        Yes     Update current user's UPI ID
+
+  5.2 CLAIMS MANAGEMENT  (Prefix: /claims)
+  ─────────────────────────────────────────
+  METHOD  ENDPOINT                    AUTH     ROLE      DESCRIPTION
+  POST    /claims/                    Yes      Customer  Submit a new claim
+  GET     /claims/                    Yes      Customer  Get my claims
+  GET     /claims/admin/all           Yes      Admin     Get ALL claims
+  PUT     /claims/{id}/approve        Yes      Admin     Approve a claim
+  PUT     /claims/{id}/reject         Yes      Admin     Reject a claim
+  PUT     /claims/{id}/paid           Yes      Admin     Mark claim as paid
+  GET     /claims/{id}/documents      Yes      Any       Get claim documents
+  POST    /claims/{id}/documents      Yes      Customer  Upload a document
+
+  5.3 PAYMENTS  (Prefix: /payments)
+  ─────────────────────────────────
+  METHOD  ENDPOINT                    AUTH     ROLE      DESCRIPTION
+  POST    /payments/create-order      Yes      Admin     Create Razorpay order
+
+
+6. FRONTEND PAGES & ROUTES
+────────────────────────────────────────────────────────────────────────────────
+
+  ROUTE                  ACCESS     DESCRIPTION
+  /login                 Public     User login page
+  /register              Public     New user registration
+  /                      Admin      Admin Dashboard (Claims Queue, Analytics)
+  /client                Customer   Client Dashboard (My Claims, UPI Editor)
+  /client/new-claim      Customer   Submit a new insurance claim
+  /client/claim/[id]     Customer   View specific claim details
+
+
+7. KEY FEATURES IMPLEMENTED
+────────────────────────────────────────────────────────────────────────────────
+
+  [✓] Role-Based Access Control (Admin vs Customer routing)
+  [✓] JWT Authentication via Supabase Auth
+  [✓] Self-Healing Login (auto-creates missing user profiles)
+  [✓] Claim Lifecycle: Submit → Approve/Reject → Disburse → Paid
+  [✓] Document Upload & Evidence Viewing
+  [✓] Client Self-Service UPI Management
+  [✓] Secure Disbursal Terminal with Bank Transfer Simulation
+  [✓] Razorpay API Integration (Test Mode)
+  [✓] Real-time Statistics (Pending Count, Total INR Settled)
+  [✓] Multi-Tab Admin Dashboard (Claims Queue, Underwriters, Analytics)
+  [✓] Animated UI with Framer Motion transitions
+  [✓] CORS Security (Whitelisted production domains only)
+  [✓] Cloud Deployment on Render.com (Frontend + Backend)
+
+
+8. ENVIRONMENT VARIABLES
+────────────────────────────────────────────────────────────────────────────────
+
+  BACKEND (.env / Render Environment):
+    SUPABASE_URL          = https://xxxxx.supabase.co
+    SUPABASE_KEY          = eyJhbGciOi...
+    SECRET_KEY            = your_app_secret
+    ALGORITHM             = HS256
+    ACCESS_TOKEN_EXPIRE   = 30
+    RAZORPAY_KEY_ID       = rzp_test_SexSPREtTrYT02
+    RAZORPAY_KEY_SECRET   = ClaFi5pb42bbZCQ0T12wfVnd
+
+  FRONTEND (Render Environment):
+    NEXT_PUBLIC_API_URL   = https://<your-backend>.onrender.com
+
+
+9. DEPLOYMENT CONFIGURATION
+────────────────────────────────────────────────────────────────────────────────
+
+  BACKEND (Render Web Service):
+    Root Directory   : backend
+    Build Command    : pip install -r requirements.txt
+    Start Command    : uvicorn main:app --host 0.0.0.0 --port $PORT
+    Python Version   : 3.14
+
+  FRONTEND (Render Web Service):
+    Root Directory   : frontend
+    Build Command    : npm install && npm run build
+    Start Command    : npm run start
+    Node Version     : 22.x
+
+
+10. SECURITY MEASURES
+────────────────────────────────────────────────────────────────────────────────
+
+  • JWT Bearer Token authentication on all protected endpoints
+  • CORS restricted to whitelisted origins only
+  • Supabase Row Level Security (RLS) on database tables
+  • Passwords managed by Supabase Auth (never stored in plaintext)
+  • .gitignore configured to exclude .env, node_modules, __pycache__
+  • Environment variables stored securely in Render dashboard
+
+
+11. PROJECT FILE STRUCTURE
+────────────────────────────────────────────────────────────────────────────────
+
+  insurence claim management system/
+  │
+  ├── .gitignore
+  │
+  ├── backend/
+  │   ├── .env                      # Secret keys (NOT in Git)
+  │   ├── .env.example              # Template for environment vars
+  │   ├── main.py                   # FastAPI app entry point
+  │   ├── schemas.py                # Pydantic models & validation
+  │   ├── requirements.txt          # Python dependencies
+  │   ├── seed_users.py             # Database seeding script
+  │   ├── supabase_schema.sql       # SQL schema for tables
+  │   │
+  │   ├── api/
+  │   │   ├── __init__.py
+  │   │   ├── auth.py               # JWT verification & role checks
+  │   │   ├── claims.py             # Claim CRUD & status management
+  │   │   ├── payments.py           # Razorpay order creation
+  │   │   └── users.py              # Registration, login, UPI update
+  │   │
+  │   └── database/
+  │       └── __init__.py           # Supabase client initialization
+  │
+  └── frontend/
+      ├── package.json              # Node.js dependencies
+      ├── next.config.mjs           # Next.js configuration
+      │
+      └── src/
+          ├── lib/
+          │   └── api.js            # Axios HTTP client (dynamic URL)
+          │
+          └── app/
+              ├── layout.js         # Root layout & global fonts
+              ├── globals.css       # Global design system (CSS)
+              ├── page.js           # Admin Dashboard
+              ├── login/page.js     # Login page
+              ├── register/page.js  # Registration page
+              │
+              └── client/
+                  ├── page.js            # Client Dashboard
+                  ├── new-claim/page.js  # New Claim form
+                  └── claim/[id]/page.js # Claim detail view
+
+
+12. SQL COMMANDS REQUIRED (Run in Supabase SQL Editor)
+────────────────────────────────────────────────────────────────────────────────
+
+  -- Add UPI column to users table
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS upi_id TEXT DEFAULT 'not_provided';
+
+  -- Add payment tracking to claims table
+  ALTER TABLE claims ADD COLUMN IF NOT EXISTS payment_id TEXT;
+
+  -- Update status constraint to include 'paid'
+  ALTER TABLE claims DROP CONSTRAINT IF EXISTS claims_status_check;
+  ALTER TABLE claims ADD CONSTRAINT claims_status_check
+    CHECK (status IN ('pending', 'under_review', 'approved', 'rejected', 'paid'));
+
+
+================================================================================
+                          END OF PROJECT REPORT
+================================================================================

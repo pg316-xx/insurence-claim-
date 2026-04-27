@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  HOSPITAL
+  TPA
+  ADMIN
+}
+
+enum ClaimType {
+  CASHLESS
+  REIMBURSEMENT
+}
+
+enum ClaimStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  NEED_MORE_INFO
+  APPROVED
+  REJECTED
+  SETTLED
+}
+
+enum DocumentType {
+  BILL
+  LAB_REPORT
+  DISCHARGE_SUMMARY
+  PRESCRIPTION
+  ID_PROOF
+  OTHER
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  password     String
+  role         Role      @default(CUSTOMER)
+  phone        String?
+  address      String?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  policies     Policy[]
+  claims       Claim[]   @relation("CustomerClaims")
+  tpaClaims    Claim[]   @relation("TPAClaims")
+  reviews      ClaimReview[]
+  hospital     Hospital? @relation(fields: [hospitalId], references: [id])
+  hospitalId   String?   @unique
+}
+
+model Policy {
+  id             String   @id @default(uuid())
+  policyNumber   String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+  userId         String
+  coverageAmount Float
+  startDate      DateTime
+  endDate        DateTime
+  status         String   @default("ACTIVE")
+  claims         Claim[]
+  createdAt      DateTime @default(now())
+}
+
+model Hospital {
+  id             String   @id @default(uuid())
+  name           String
+  location       String
+  isNetwork      Boolean  @default(true)
+  contactDetails String?
+  user           User?
+  claims         Claim[]
+  createdAt      DateTime @default(now())
+}
+
+model Claim {
+  id                 String       @id @default(uuid())
+  claimNumber        String       @unique
+  user               User         @relation("CustomerClaims", fields: [userId], references: [id])
+  userId             String
+  policy             Policy       @relation(fields: [policyId], references: [id])
+  policyId           String
+  hospital           Hospital?    @relation(fields: [hospitalId], references: [id])
+  hospitalId         String?
+  tpa                User?        @relation("TPAClaims", fields: [tpaId], references: [id])
+  tpaId              String?
+  type               ClaimType
+  status             ClaimStatus  @default(DRAFT)
+  diagnosis          String
+  admissionDate      DateTime?
+  dischargeDate      DateTime?
+  amountClaimed      Float
+  amountApproved     Float?
+  documents          Document[]
+  reviews            ClaimReview[]
+  payment            Payment?
+  createdAt          DateTime     @default(now())
+  lastStatusChangeAt DateTime     @default(now())
+}
+
+model Document {
+  id           String       @id @default(uuid())
+  claim        Claim        @relation(fields: [claimId], references: [id])
+  claimId      String
+  fileUrl      String
+  documentType DocumentType
+  createdAt    DateTime     @default(now())
+}
+
+model ClaimReview {
+  id           String      @id @default(uuid())
+  claim        Claim       @relation(fields: [claimId], references: [id])
+  claimId      String
+  reviewer     User        @relation(fields: [reviewerId], references: [id])
+  reviewerId   String
+  role         Role
+  statusBefore ClaimStatus
+  statusAfter  ClaimStatus
+  decision     String?
+  comments     String?
+  createdAt    DateTime    @now()
+}
+
+model Payment {
+  id             String    @id @default(uuid())
+  claim          Claim     @relation(fields: [claimId], references: [id])
+  claimId        String    @unique
+  amount         Float
+  paymentMode    String
+  transactionRef String
+  paidTo         String
+  status         String    @default("COMPLETED")
+  paidAt         DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+}
